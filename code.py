@@ -20,6 +20,8 @@ def argRead():
 	    group.add_argument('-w', default = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", dest = "WORDLIST", help = "Wordlist Location",)
 	    group.add_argument('-t', default = 10, dest = "MAX_QUEUE", help = "Number of threads",)
 	    group.add_argument('-o', default = "result.txt", dest = "OUTPUT_FILE", help = "Output file",)
+	    group.add_argument('-dir', '--dir', dest='DIR',default=False, action='store_true',
+                    		help='Bruteforce directories')
 	    group.add_argument('-i', default = False, dest = "IP_ADDRESS", help = "HOST_IP",)
 	    group.add_argument('-p', default = '', dest = "PORT_ADDRESS", help = "Port address",)
 	    group.add_argument('-https', '--https', dest='HTTPS',default=False, action='store_true',
@@ -54,7 +56,7 @@ url=(urls.read())
 count=count+skip;
 urls_read=url.split("\n")
 total=len(urls_read)
-urls_read=urls_read[skip-1:]
+urls_read=urls_read[skip:]
 if(https):
 	baseURL="https://"
 else:
@@ -70,7 +72,7 @@ def check(url):
 	queue+=1
 	try:
 		k=requests.head("%s%s"%(baseURL,url),params={})
-		if(k.status_code!=404):
+		if(k.status_code in ['200']):
 			file=open(args.OUTPUT_FILE,"a")
 			file.write(url+" "+str(k.status_code)+"\n")
 			file.close()
@@ -88,15 +90,22 @@ def prints(msg):
 	while(lock):
 		pass
 	lock=True
-	sys.stdout.write("\n("+str(total)+"/"+str(count)+") : "+msg)
+	sys.stdout.write("\n("+str(total)+"/"+str(count/len(extensions))+") : "+msg)
 	count+=1
 	lock=False
+try:
+	for url in urls_read:
+		if(args.DIR):
+			start_new_thread(check,(url+"/",))
+			continue;
+		for ext in extensions:
+			while(queue>=maxQueue):
+				pass
+			if (re.match(args.REGEX,url)):
+				start_new_thread(check,(url+"."+ext,))
+	
+except Exception as exp:
+	print str(exp);
 
-
-for url in urls_read:
-	for ext in extensions:
-		while(queue>=maxQueue):
-			pass
-		if (re.match(args.REGEX,url)):
-			start_new_thread(check,(url+"."+ext,))
-	count+=1
+while(True):
+	pass
