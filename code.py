@@ -9,16 +9,23 @@ import signal
 import hashlib
 from thread import start_new_thread
 from collections import deque
-
-errors=0
-queue=0
-count=1
-queueLock=False
+import fcntl
+errors		= 0
+queue		= 0
+count		= 1
+queueLock	= False
+hexValue	= hashlib.md5("".join(sys.argv)).hexdigest()
+printSpool	= deque([])
+currentWords	= []
+errors		= []
+	
 
 def signal_handler(signal, frame):
-    word=queueWords.pop() 
-    file=open(".dir_restore","a")
-    file.write(hashlib.md5("".join(sys.argv)).hexdigest()+" "+str(word))
+    global queueWords
+    queueWords=list(queueWords)+currentWords
+    queueWords.reverse()
+    file=open("."+hexValue,"w")
+    file.write("\n".join(queueWords))
     file.close()
     sys.exit(0)
 
@@ -56,48 +63,51 @@ Examples :
 	return args
 
 def check(wordRaw,url):
-	global queue,error,args,queueLock,lock, count
+	global queue,error,args,queueLock,lock, count, currentWords
 	queue+=1
 	try:
-		k=requests.head(url,params={})
+		currentWords.append(wordRaw)
+		k=response=requests.head(url,params={})
 		scodes=(args.SUCC_CODES).split(",")
 		scodes=[int(x) for x in scodes]
 		if(int(k.status_code) in scodes):
 			file=open(args.OUTPUT_FILE,"a")
+			fcntl.flock(file,fcntl.LOCK_EX)
 			file.write(url+" "+str(k.status_code)+"\n")
-			while(lock):
-				pass
-			lock=True
-			sys.stdout.write ("\033[1;31;40m\n"+url+" "+str(k.status_code));
-			lock=False
+			printSpool.append("\033[1;31;40m\n"+url+" "+str(k.status_code));			
 			file.close()
-			count+=1
 		else:
-			prints(str(url)+"  "+str(k.status_code));
+			printSpool.append("\033[1;32;40m\n"+"("+str(countOfWords)+"/"+str(queueWords_dummy.index(wordRaw))+")\t: "+str(url)+"  "+str(k.status_code));
+		currentWords.remove(wordRaw)
 		queue-=1
 	except Exception as e:
-		#exc_type, exc_obj, exc_tb = sys.exc_info()
-		#fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-		#print(exc_type, fname, exc_tb.tb_lineno)
-		print str(e)
-		while(queueLock):
+		try:
+			#exc_type, exc_obj, exc_tb = sys.exc_info()
+			#fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+			#print(exc_type, fname, exc_tb.tb_lineno)
+			print str(e)
+			while(queueLock):
+				pass
+			queueLock=True
+			queueWords.append(wordRaw)
+			queueLock=False
+			errors.append("1")
+			queue-=1
+		except Exception as ex:
 			pass
-		queueLock=True
-		queueWords.append(wordRaw)
-		queueLock=False
-		queue-=1
-		
 
-lock=False
-def prints(msg):
-	global lock
-	global count
-	while(lock):
+def prints():
+	try:
+		global count
+		while(True):
+			while(len(printSpool)==0):
+				pass
+			sys.stdout.write(printSpool.popleft())
+			count+=1
+	except sys.excepthook as e:
 		pass
-	lock=True
-	sys.stdout.write ("\033[1;32;40m\n"+"("+str(countOfWords)+"/"+str(count/len(extensions))+") : "+msg+ " (F) ")
-	count+=1
-	lock=False
+
+start_new_thread(prints,())
 
 def nonFUzzing():
 	global queueLock,queueWords,args, queue, baseURL,count
@@ -149,7 +159,7 @@ def fuzzing():
 		#print str(e)
 		pass
 
-
+workingValues=[]
 args		= argRead();
 maxQueue	= int(args.MAX_QUEUE)
 skip		= int(args.SKIP_STEP)
@@ -160,13 +170,28 @@ https		= args.HTTPS
 basePath	= args.BASE_PATH
 fString		= ""
 ip		= ""
-wordlistFile	= open(wordList,"r")
+wordlistFile	= ""
+while("."+hexValue in os.listdir(".")):
+	ch=raw_input("Previous session is not finished do you want to restore it (y/n) : ")
+	if(ch[0]=='y' or ch[0] == 'Y'):
+			wordlistFile	= open("."+hexValue,"r")
+			break;
+	elif(ch[0]=='n' or ch[0] == 'N'):
+			wordlistFile	= open(wordList,"r")
+			break;
+	else:
+			print "Oooooo Invalid choice :( "
+else:
+	wordlistFile	= open(wordList,"r")
+			
 words		= (wordlistFile.read())
 queueWords	= list(words.split("\n"))
 queueWords.reverse()
 countOfWords	= len(queueWords)
 queueWords	= queueWords[0:countOfWords-skip]
 queueWords	= deque(queueWords)
+queueWords_dummy= list(queueWords)
+queueWords_dummy.reverse()
 count		= count + skip;
 baseURL		= ""
 
