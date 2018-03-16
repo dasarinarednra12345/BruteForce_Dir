@@ -17,8 +17,7 @@ queueLock	= False
 hexValue	= hashlib.md5("".join(sys.argv)).hexdigest()
 printSpool	= deque([])
 currentWords	= []
-errors		= []
-	
+errors		= []	
 
 def signal_handler(signal, frame):
     global queueWords
@@ -41,6 +40,8 @@ Examples :
 	group=argparse.ArgumentParser( description = DESCRIPTION, epilog = EPILOG,formatter_class = argparse.RawDescriptionHelpFormatter,)
 	group.add_argument('-fuzz', '--fuzz', dest='FUZZ',default=False, action='store_true',
                     		help='Enable Fuzzin')
+	group.add_argument('-custom', '--custom', dest='CUST',default=False, action='store_true',
+                    		help='Enable custom code input')
 	group.add_argument('-fstring', default = "", dest = "FUZZ_STRING", help = "Input fuzz string",)
 	group.add_argument('-scodes', default = "200", dest = "SUCC_CODES", help = "Success status code comma seperated",)
 	group.add_argument('-w', default = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt", dest = "WORDLIST", help = "Wordlist Location",)
@@ -63,14 +64,19 @@ Examples :
 	return args
 
 def check(wordRaw,url):
-	global queue,error,args,queueLock,lock, count, currentWords
+	global queue,error,args,queueLock,lock, count, currentWords,customCond
 	queue+=1
 	try:
 		currentWords.append(wordRaw)
 		k=response=requests.head(url,params={})
 		scodes=(args.SUCC_CODES).split(",")
 		scodes=[int(x) for x in scodes]
-		if(int(k.status_code) in scodes):
+		checkCondition=""
+		if(len(customCond)==0):
+			checkCondition=int(k.status_code) in scodes
+		else :
+			checkCondition=eval(customCond);
+		if(checkCondition):
 			file=open(args.OUTPUT_FILE,"a")
 			fcntl.flock(file,fcntl.LOCK_EX)
 			file.write(url+" "+str(k.status_code)+"\n")
@@ -195,6 +201,19 @@ queueWords_dummy.reverse()
 count		= count + skip;
 baseURL		= ""
 
+customCond	= ""
+if(args.CUST):
+	line=""
+	print "Enter custom condition on response\nEx \nresponse.status_code==200 and \nresponse.status_code!=404 then preess <CTRL>+D\n"
+	contents = []
+	while True:
+	    try:
+		line = raw_input("")
+		contents.append(line)
+	    except EOFError:
+		break
+	customCond=" ".join(contents)
+	
 if(args.FUZZ):
 	fString=args.FUZZ_STRING
 	if(fString.count("<FUZZ>")==1):
