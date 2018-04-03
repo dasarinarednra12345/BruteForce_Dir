@@ -1,9 +1,10 @@
-# BruteForce_Dir is a python script designed for bruteforcing web application directories and files. It can also fuzz the web application
+# U3LENS is a python script designed for bruteforcing web application directories and files. It can also fuzz the web application
 New features:
   1. Custom code can be given by user
   2. Restore option on bruteforce attack
   3. Much control for user 
-  
+  4. More intaractive
+  5. Multi-threaded 
   ```
 usage: Detect_Dir [-h] [-fuzz] [-custom] [-fstring FUZZ_STRING]
                   [-scodes SUCC_CODES] [-w WORDLIST] [-t MAX_QUEUE]
@@ -33,5 +34,5 @@ optional arguments:
   -e EXTENSIONS         COmma seperated extensions
 
 Examples :
-	Detect_Dir --fuzz -fstring "http://example.com/<FUZZ>/index.html"	
+	U3LENS --fuzz -fstring "http://example.com/<FUZZ>/index.html"	
   ```
