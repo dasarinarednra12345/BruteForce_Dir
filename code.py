@@ -35,7 +35,7 @@ def argRead():
 	"Script used for bruteforcing web application directories and files"
 	EPILOG ="""
 Examples :
-	Detect_Dir --fuzz -fstring "http://example.com/<FUZZ>/index.html"		
+	U3LENS --fuzz -fstring "http://example.com/<FUZZ>/index.html"		
 	"""
 	group=argparse.ArgumentParser( description = DESCRIPTION, epilog = EPILOG,formatter_class = argparse.RawDescriptionHelpFormatter,)
 	group.add_argument('-fuzz', '--fuzz', dest='FUZZ',default=False, action='store_true',
